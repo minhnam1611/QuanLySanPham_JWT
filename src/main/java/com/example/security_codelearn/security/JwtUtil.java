@@ -17,11 +17,11 @@ import org.springframework.stereotype.Component;
 import java.util.Date;
 
 @Component
-public class JwtUtil {
+public class  JwtUtil {
     private static Logger logger = LoggerFactory.getLogger(JwtUtil.class);
     private static final String USER = "user";
     private static final String SECRET = "anhdangminhnamthatladeptraiquadiahihihihihihihihihihihihihihihihihihi";
-
+    //Tạo access Token
     public String generateToken(UserPrincipal user){
         String token = null;
         try{
@@ -38,9 +38,32 @@ public class JwtUtil {
         }
         return token;
     }
+    //Tạo access Token
+    public String generateRfToken(UserPrincipal user){
+        String token = null;
+        try{
+            JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder();
+            builder.claim(USER, user);
+            builder.expirationTime(generateExpirationDaterf());
+            JWTClaimsSet claimsSet = builder.build();
+            SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256),claimsSet);
+            JWSSigner signer =  new MACSigner(SECRET.getBytes());
+            signedJWT.sign(signer);
+            token = signedJWT.serialize();
+        }catch (Exception e){
+            logger.error(e.getMessage());
+        }
+        return token;
+    }
+    //tạo time hết hạn Access token (10 phút)
     public Date generateExpirationDate() {
         return new Date(System.currentTimeMillis() + 1000*60*10);
     }
+    //tạo time hết hạn của Refresh Token(3 ngày)
+    public Date generateExpirationDaterf() {
+        return new Date(System.currentTimeMillis() + 1000*60*60*24*3);
+    }
+    //lấy dữ liệu Payload
     private JWTClaimsSet getClaimsFromToken(String token){
         JWTClaimsSet claims = null;
         try{
@@ -54,9 +77,11 @@ public class JwtUtil {
         }
         return claims;
     }
+    //lấy time hết hạn
     private Date getExpirationDateFromToken(JWTClaimsSet claims) {
         return claims != null ? claims.getExpirationTime() : new Date();
     }
+    //Kiểm tra token hết hạn chưa ?
     private boolean isTokenExpired(JWTClaimsSet claims) {
         return getExpirationDateFromToken(claims).after(new Date());
     }

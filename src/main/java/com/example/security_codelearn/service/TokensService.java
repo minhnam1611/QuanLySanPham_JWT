@@ -9,6 +9,6 @@ import java.util.Date;
 public interface TokensService {
     Tokens createToken(Tokens token);
     Tokens findByToken(String token);
-
+    Long  findUserByRefreshtoken(String refreshtoken);
 
 }

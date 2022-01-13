@@ -1,7 +1,9 @@
 package com.example.security_codelearn.security;
 
 import com.example.security_codelearn.entity.Tokens;
+import com.example.security_codelearn.entity.Users;
 import com.example.security_codelearn.service.TokensService;
+import com.example.security_codelearn.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -30,6 +32,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Autowired
     private TokensService verificationTokenService;
 
+    @Autowired
+    private UserService userService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -37,17 +42,46 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         UserPrincipal user = null;
         Tokens token = null;
+
+        //kiểm tra Key và Value trên Headers đã đúng định dạng ?
         if (StringUtils.hasText(authorizationHeader) && authorizationHeader.startsWith("Token ")) {
+            // lấy chuỗi token từ Headers
             String jwt = authorizationHeader.substring(6);
+            // lấy thông tin user từ token
             user = jwtUtil.getUserFromToken(jwt);
+            //lấy thông tin token bằng Accsess token
             token = verificationTokenService.findByToken(jwt);
-
         }
-
+        //Trường hợp Acctoken đã hết hạn
+        if(null != token && token.getTokenExpDate().before(new Date())){
+            System.out.println("AccessToken đã hết hạn.");
+            System.out.println("Quá trình Refresh Token .......");
+            //lấy id user từ refresh token
+            Long iduser = verificationTokenService.findUserByRefreshtoken(token.getRefreshtoken());
+            //lấy tên user từ id
+            String userrf = userService.findUsernameFromId(iduser);
+            //lấy usrePrincipal từ username
+            UserPrincipal userPrincipal = userService.findByUsername(userrf);
+            //tạo cặp token mới
+            Tokens newToken = new Tokens();
+            newToken.setIduser(iduser);
+            newToken.setToken(jwtUtil.generateToken(userPrincipal));
+            newToken.setRefreshtoken(jwtUtil.generateRfToken(userPrincipal));
+            newToken.setTokenExpDate(jwtUtil.generateExpirationDate());
+            newToken.setRfTokenExpDate(jwtUtil.generateExpirationDaterf());
+            System.out.println("New AccessToken: "+ newToken.getToken());
+            System.out.println("New RefreshToken: "+ newToken.getRefreshtoken());
+            verificationTokenService.createToken(newToken);
+        }
+        //Kiểm tra: user và token khác null && token chưa hết hạn ====> trả về các quyền truy cập
         if (null != user && null != token && token.getTokenExpDate().after(new Date())) {
+            //tạo 1 HashSet gồm các quyền
             Set<GrantedAuthority> authorities = new HashSet<>();
+            //tạo quyền cho user
             user.getAuthorities().forEach(p -> authorities.add(new SimpleGrantedAuthority((String) p)));
+            //tạo User-Quyền: Thông tin User + quyền truy cập
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, authorities);
+
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }

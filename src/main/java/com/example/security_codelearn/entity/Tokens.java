@@ -19,6 +19,10 @@ public class Tokens {
 
     @Column(length = 1000)
     private String token;
+    @Column(length = 1000)
+    private String refreshtoken;
 
     private Date tokenExpDate;
+
+    private Date rfTokenExpDate;
 }

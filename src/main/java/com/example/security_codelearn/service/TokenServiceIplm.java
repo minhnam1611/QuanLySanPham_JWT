@@ -21,5 +21,10 @@ public class TokenServiceIplm implements TokensService{
         return tokenRepository.findByToken(token);
     }
 
+    @Override
+    public Long findUserByRefreshtoken(String refreshtoken) {
+        return tokenRepository.findByRefreshtoken(refreshtoken).getIduser();
+    }
+
 
 }

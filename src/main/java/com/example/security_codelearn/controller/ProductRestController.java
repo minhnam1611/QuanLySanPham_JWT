@@ -14,7 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -74,9 +73,11 @@ public class ProductRestController {
         }
         Tokens token = new Tokens();
         token.setToken(jwtUtil.generateToken(userPrincipal));
+        token.setRefreshtoken(jwtUtil.generateRfToken(userPrincipal));
         token.setTokenExpDate(jwtUtil.generateExpirationDate());
+        token.setRfTokenExpDate(jwtUtil.generateExpirationDaterf());
         token.setIduser(userPrincipal.getId());
         tokenService.createToken(token);
-        return ResponseEntity.ok(token.getToken());
+        return ResponseEntity.ok("Access token: "+token.getToken()+"\nRefresh Token: "+token.getRefreshtoken());
     }
 }
